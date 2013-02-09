@@ -2,7 +2,7 @@
 \alias{Alien.Vault.Reputation}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-%%  ~~function to do ... ~~
+Alien.Vault.Reputation
 }
 \description{
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~

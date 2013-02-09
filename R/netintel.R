@@ -123,7 +123,7 @@ CIRCL.BGP.Rank <- function(asn, circl.base.url="http://bgpranking.circl.lu/csv/"
   # Retrieves CIRCL aggregated, historical/current BGP rank data
   #
   # Args:
-  #   asn : ASN to lookup
+  #   asn : ASN list to lookup
   #   circl.base.url : lookup URL (optional parameter in the event it changes)
   #
   # Returns:
@@ -136,8 +136,11 @@ CIRCL.BGP.Rank <- function(asn, circl.base.url="http://bgpranking.circl.lu/csv/"
   # 2012-09-19,1.00020833333
   # 2012-09-18,1.00020833333
   
-  return(read.csv(sprintf("%s%s",circl.base.url,asn)))
-  
+  ranks = lapply(asn,function(x){
+    read.csv(sprintf("%s%s",circl.base.url,x))
+  })
+
+  return(ranks)
 }
 
 
@@ -211,7 +214,7 @@ Alien.Vault.Reputation <- function(refresh=FALSE) {
     raw = readLines(src)
     close(src)
     av.matrix = t(sapply(strsplit(raw[9:length(raw)],"\ +#\ +"),c))  
-    av.df = data.frame(IP=pre[,1],Reputation=factor(pre[,2]))
+    av.df = data.frame(IP=av.matrix[,1],Reputation=factor(av.matrix[,2]),stringsAsFactors=FALSE)
     dput(av.df,av.file)
   } else {
     av.df = dget(av.file)
