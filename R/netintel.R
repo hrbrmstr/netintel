@@ -1,9 +1,9 @@
 #
-# bulkorigin.R - perform bulk IP to ASN mapping via Team Cymru whois service
+# netintel.R - perform bulk IP to ASN mapping via Team Cymru whois service
 #
 # Author: @hrbrmstr
-# Version: 0.1
-# Date: 2013-02-07
+# Version: 0.2
+# Date: 2013-02-11
 #
 # Copyright 2013 Bob Rudis
 # 
@@ -25,6 +25,11 @@
 # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.#
+#
+# FIXED: stupid call to lapply vs laply #idiot
+#
+# TODO: spamhaus feeds? http://www.spamhaus.org/drop/drop.txt
+#                       http://www.spamhaus.org/drop/edrop.txt
 
 library(plyr)
 
@@ -63,11 +68,11 @@ BulkOrigin <- function(ip.list,host="v4.whois.cymru.com",port=43) {
 
   # trim header, split fields and convert results
   response = response[2:length(response)]
-  response = lapply(response,function(n) {
+  response = laply(response,.fun=function(n) {
     sapply(strsplit(n,"|",fixed=TRUE),trim)
-  })  
+  })
   response = adply(response,c(1))
-  response = response[,2:length(response)]
+  response = subset(response, select = -c(X1) )
   names(response) = c("AS","IP","BGP.Prefix","CC","Registry","Allocated","AS.Name")
   
   return(response)
@@ -106,11 +111,11 @@ BulkPeer <- function(ip.list,host="v4-peer.whois.cymru.com",port=43) {
   
   # trim header, split fields and convert results
   response = response[2:length(response)]
-  response = lapply(response,function(n) {
+  response = laply(response,function(n) {
     sapply(strsplit(n,"|",fixed=TRUE),trim)
   })  
   response = adply(response,c(1))
-  response = response[,2:length(response)]
+  response = subset(response, select = -c(X1) )
   names(response) = c("Peer.AS","IP","BGP.Prefix","CC","Registry","Allocated","Peer.AS.Name")
   return(response)
   
@@ -196,25 +201,46 @@ Alien.Vault.Reputation <- function(refresh=FALSE) {
   # Returns:
   #   data frame with IP & Reputation factor
   #
+  # Switched to http://reputation.alienvault.com/reputation.data as it has a richer set of fields
+  # Format is: IP#Reliability(1-10)#Risk(1-10)#Activity#Country#City#LAT,LON
+  # ~18MB, so try to be sure you really need to refresh it
+  #  
+  # TODO: Need to split lat/long
+  # TODO: What is field 8?
   # TODO: Need to split out the ";" separated factors
   #
   # Background on Alien Valut's IP rep db: http://labs.alienvault.com/labs/index.php/projects/open-source-ip-reputation-portal/download-ip-reputation-database/
+  # More info on it: http://www.slideshare.net/alienvault/building-an-ip-reputation-engine-tracking-the-miscreants
   #
   
-  alien.valut.reputation.gzurl = "http://reputation.alienvault.com/reputation.snort.gz"
+  alien.vault.reputation.url = "http://reputation.alienvault.com/reputation.data"
   
   av.dir = file.path(path.expand("~"), ".ipcache")
   av.file =  file.path(av.dir,"alienvaultrepdf")
-  av.gzfile =  file.path(av.dir,"reputation.snort.gz")
+  av.data.file =  file.path(av.dir,"reputation.data")
   
   dir.create(av.dir, showWarnings=FALSE)
   if (refresh || file.access(av.file)) {
-    download.file(alien.valut.reputation.gzurl,av.gzfile)  
-    src = gzfile(av.gzfile)
+    download.file(alien.vault.reputation.url,av.data.file)  
+    src = file(av.data.file)
     raw = readLines(src)
     close(src)
-    av.matrix = t(sapply(strsplit(raw[9:length(raw)],"\ +#\ +"),c))  
-    av.df = data.frame(IP=av.matrix[,1],Reputation=factor(av.matrix[,2]),stringsAsFactors=FALSE)
+    av.matrix = t(sapply(strsplit(raw[1:length(raw)],"#"),c))  
+    av.ip = av.matrix[,1]
+    av.reliability = av.matrix[,2]
+    av.risk = av.matrix[,3]
+    av.activity = factor(av.matrix[,4])
+    av.country = av.matrix[,5]
+    av.city = av.matrix[,6]
+    av.location = t(sapply(strsplit(av.matrix[,7],","),c))  
+    av.df = data.frame(IP=av.ip,Reliability=av.reliability,
+                       Risk=av.risk,
+                       Activity=av.activity,
+                       Country=factor(av.country),
+                       City=av.city,
+                       Latitude=as.numeric(av.location[,1]),
+                       Longitude=as.numeric(av.location[,2]),
+                       stringsAsFactors=FALSE)
     dput(av.df,av.file)
   } else {
     av.df = dget(av.file)
