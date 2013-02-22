@@ -5,7 +5,7 @@
 Alien.Vault.Reputation
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+Retrieves Alien Vault's IP reputation database
 }
 \usage{
 Alien.Vault.Reputation(refresh = FALSE)
@@ -13,18 +13,14 @@ Alien.Vault.Reputation(refresh = FALSE)
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{refresh}{
-%%     ~~Describe \code{refresh} here~~
-}
+should the function refresh the database
+  }
 }
 \details{
-%%  ~~ If necessary, more details than the description above ~~
+AlienValut refreshes every hour, but the onus is on the caller to force a refresh. First-time call will setup a cache directory & file in the user's home directory, download & generate the data frame then write the data frame out as an R object. Future calls will just re-read this data frame unless refresh == TRUE
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+Data frame with IP & Reputation factor
 }
 \references{
 %% ~put references to the literature/web site here ~
@@ -33,7 +29,11 @@ Alien.Vault.Reputation(refresh = FALSE)
 %%  ~~who you are~~
 }
 \note{
-%%  ~~further notes~~
+Please be kind to the Alien Valut servers & only refresh if you really need to.
+
+Background on Alien Valut's IP rep db: http://labs.alienvault.com/labs/index.php/projects/open-source-ip-reputation-portal/download-ip-reputation-database/
+
+Even more info: http://www.slideshare.net/alienvault/building-an-ip-reputation-engine-tracking-the-miscreants
 }
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
@@ -42,34 +42,7 @@ Alien.Vault.Reputation(refresh = FALSE)
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
 
-## The function is currently defined as
-function (refresh = FALSE) 
-{
-    alien.valut.reputation.gzurl = "http://reputation.alienvault.com/reputation.snort.gz"
-    av.dir = file.path(path.expand("~"), ".ipcache")
-    av.file = file.path(av.dir, "alienvaultrepdf")
-    av.gzfile = file.path(av.dir, "reputation.snort.gz")
-    dir.create(av.dir, showWarnings = FALSE)
-    if (refresh || file.access(av.file)) {
-        download.file(alien.valut.reputation.gzurl, av.gzfile)
-        src = gzfile(av.gzfile)
-        raw = readLines(src)
-        close(src)
-        av.matrix = t(sapply(strsplit(raw[9:length(raw)], " +# +"), 
-            c))
-        av.df = data.frame(IP = pre[, 1], Reputation = factor(pre[, 
-            2]))
-        dput(av.df, av.file)
-    }
-    else {
-        av.df = dget(av.file)
-    }
-    return(av.df)
-  }
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

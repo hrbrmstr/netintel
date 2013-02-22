@@ -5,7 +5,7 @@
 CIRCL.BGP.Rank
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+Retrieves CIRCL aggregated, historical/current BGP rank data
 }
 \usage{
 CIRCL.BGP.Rank(asn, circl.base.url = "http://bgpranking.circl.lu/csv/")
@@ -13,27 +13,25 @@ CIRCL.BGP.Rank(asn, circl.base.url = "http://bgpranking.circl.lu/csv/")
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{asn}{
-%%     ~~Describe \code{asn} here~~
+ASN list to lookup
 }
   \item{circl.base.url}{
-%%     ~~Describe \code{circl.base.url} here~~
+lookup URL (optional parameter settable here in the event it changes)
 }
 }
 \details{
-%%  ~~ If necessary, more details than the description above ~~
+Background on CIRCL project (+ source): https://github.com/CIRCL/bgp-ranking
+
+
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+Data frame of CIRCL rank data
 }
 \references{
 %% ~put references to the literature/web site here ~
 }
 \author{
-%%  ~~who you are~~
+Bob Rudis
 }
 \note{
 %%  ~~further notes~~
@@ -42,18 +40,10 @@ CIRCL.BGP.Rank(asn, circl.base.url = "http://bgpranking.circl.lu/csv/")
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+CIRCL BGP site: http://bgpranking.circl.lu/
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
 
-## The function is currently defined as
-function (asn, circl.base.url = "http://bgpranking.circl.lu/csv/") 
-{
-    return(read.csv(sprintf("\%s\%s", circl.base.url, asn)))
-  }
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

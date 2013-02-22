@@ -1,21 +1,21 @@
-\name{BulkOrigin}
-\alias{BulkOrigin}
+\name{BulkOriginASN}
+\alias{BulkOriginASN}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-BulkOrigin
+BulkOriginASN
 }
 \description{
-Retrieves BGP Origin ASN info for a list of IP addresses
+Retrieves BGP Origin ASN info for a list of ASN ids
 
-It also seems to fail if you only search for one IP address
+It also seems to fail if you only search for one ASN address
 }
 \usage{
-BulkOrigin(ip.list, host = "v4.whois.cymru.com", port = 43)
+BulkOriginASN(asn.list, host = "v4.whois.cymru.com", port = 43)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{ip.list}{
-character vector of IP addresses (2 or more)
+  \item{asn.list}{
+character vector of ASNs (2 or more); each prefixed with "AS"
 }
   \item{host}{
 which server to use for the lookup (defaults to Team Cymru's)
@@ -37,9 +37,6 @@ Data frame of BGP Origin ASN lookup results
 Bob Rudis
 }
 \note{
-IPv4 version.
-
-The Team Cymru's service is NOT a GeoIP service! Do not use this function for that as your results will not be accurate.
 }
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~

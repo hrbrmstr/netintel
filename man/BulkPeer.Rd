@@ -5,7 +5,7 @@
 BulkPeer
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+Retrieves BGP Peer ASN info for a list of IP addresses
 }
 \usage{
 BulkPeer(ip.list, host = "v4-peer.whois.cymru.com", port = 43)
@@ -13,33 +13,31 @@ BulkPeer(ip.list, host = "v4-peer.whois.cymru.com", port = 43)
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{ip.list}{
-%%     ~~Describe \code{ip.list} here~~
+Character vector of IP addresses (2 or more)
 }
   \item{host}{
-%%     ~~Describe \code{host} here~~
+Server to hit for lookup (defaults to Team Cymru's server)
 }
   \item{port}{
-%%     ~~Describe \code{port} here~~
+TCP port to use (defaults to 43)
 }
 }
 \details{
 %%  ~~ If necessary, more details than the description above ~~
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+Data frame of BGP Peer ASN lookup results
 }
 \references{
 %% ~put references to the literature/web site here ~
 }
 \author{
-%%  ~~who you are~~
+Bob Rudis
 }
 \note{
-%%  ~~further notes~~
+IPv4 version
+
+The Team Cymru's service is NOT a GeoIP service! Do not use this function for that as your results will notbe accurate.
 }
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
@@ -48,31 +46,7 @@ BulkPeer(ip.list, host = "v4-peer.whois.cymru.com", port = 43)
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
 
-## The function is currently defined as
-function (ip.list, host = "v4-peer.whois.cymru.com", port = 43) 
-{
-    cmd = "begin\nverbose\n"
-    ips = paste(unlist(ip.list), collapse = "\n")
-    cmd = sprintf("\%s\%s\nend\n", cmd, ips)
-    con = socketConnection(host = host, port = port, blocking = TRUE, 
-        open = "r+")
-    cat(cmd, file = con)
-    response = readLines(con)
-    close(con)
-    response = response[2:length(response)]
-    response = lapply(response, function(n) {
-        sapply(strsplit(n, "|", fixed = TRUE), trim)
-    })
-    response = adply(response, c(1))
-    response = response[, 2:length(response)]
-    names(response) = c("Peer.AS", "IP", "BGP.Prefix", "CC", 
-        "Registry", "Allocated", "Peer.AS.Name")
-    return(response)
-  }
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

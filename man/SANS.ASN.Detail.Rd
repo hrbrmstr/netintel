@@ -5,7 +5,7 @@
 SANS.ASN.Detail
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+Return SANS ASN currently tracked IP detail 
 }
 \usage{
 SANS.ASN.Detail(asn, sans.base.url = "http://isc.sans.edu/asdetailsascii.html?as=")
@@ -13,30 +13,27 @@ SANS.ASN.Detail(asn, sans.base.url = "http://isc.sans.edu/asdetailsascii.html?as
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{asn}{
-%%     ~~Describe \code{asn} here~~
+ASN to lookup
 }
   \item{sans.base.url}{
-%%     ~~Describe \code{sans.base.url} here~~
+Lookup URL (optional parameter in the event it changes)
 }
 }
 \details{
-%%  ~~ If necessary, more details than the description above ~~
+
 }
+
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+Data frame of SANS ASN IP data
 }
 \references{
 %% ~put references to the literature/web site here ~
 }
 \author{
-%%  ~~who you are~~
+Bob Rudis
 }
 \note{
-%%  ~~further notes~~
+If you use the "https" URL access, you'll need to change the source on some systems that can't read https directly
 }
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
@@ -45,19 +42,20 @@ SANS.ASN.Detail(asn, sans.base.url = "http://isc.sans.edu/asdetailsascii.html?as
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-function (asn, sans.base.url = "http://isc.sans.edu/asdetailsascii.html?as=") 
-{
-    src = readLines(sprintf("\%s\%s", sans.base.url, asn))
-    asn.df = read.table(textConnection(src[grep("^#", src, invert = TRUE)]))
-    names(asn.df) = c("Source.IP", "Reports.Count", "Targets.Count", 
-        "First.Seen", "Last.Seen", "Updated.Date", "Updated.Time")
-    return(asn.df)
-  }
+  # https://isc.sans.edu/asdetailsascii.html?as=21844
+  # 
+  # created: Fri, 08 Feb 2013 14:17:01 +0000#
+  # Source IP is 0 padded so each byte is three digits long
+  # Reports: number of packets received
+  # Targets: number of target IPs that reported packets from this source.
+  # First Seen: First time we saw a packet from this source
+  # Last Seen: Last time we saw a packet from this source
+  # Updated: Last time the record was updated.
+  #
+  # IPs are removed if they have not been seen in 30 days.
+  #
+  # source IP <tab> Reports <tab> Targets <tab> First Seen <tab> Last Seen <tab> Updated <CR>
+  # 118.102.187.188  4495  3909  2010-05-12  2013-02-02	2013-02-02 10:42:01
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

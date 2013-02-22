@@ -2,8 +2,8 @@
 # netintel.R - perform bulk IP to ASN mapping via Team Cymru whois service
 #
 # Author: @hrbrmstr
-# Version: 0.2
-# Date: 2013-02-11
+# Version: 0.3
+# Date: 2013-02-22
 #
 # Copyright 2013 Bob Rudis
 # 
@@ -28,6 +28,8 @@
 #
 # FIXED: stupid call to lapply vs laply #idiot
 #
+# ADDED: ASN as well as IP bulk lookups
+#
 # TODO: spamhaus feeds? http://www.spamhaus.org/drop/drop.txt
 #                       http://www.spamhaus.org/drop/edrop.txt
 
@@ -45,6 +47,8 @@ BulkOrigin <- function(ip.list,host="v4.whois.cymru.com",port=43) {
   # NOTE: The Team Cymru's service is NOT a GeoIP service!
   # Do not use this function for that as your results will not
   # be accurate.
+  #
+  # It also seems to fail if you only search for one IP address
   #
   # Args:
   #   ip.list : character vector of IP addresses
@@ -121,6 +125,50 @@ BulkPeer <- function(ip.list,host="v4-peer.whois.cymru.com",port=43) {
   
 }
 
+BulkOriginASN <- function(asn.list,host="v4.whois.cymru.com",port=43) {
+  
+  # Retrieves BGP Origin ASN info for a list of ASN ids
+  #
+  # NOTE: prefix each ASN id with 'AS'
+  #
+  # NOTE: The Team Cymru's service is NOT a GeoIP service!
+  # Do not use this function for that as your results will not
+  # be accurate.
+  #
+  # Args:
+  #   asn.list : character vector of ASN ids
+  #   host: which server to hit for lookup (defaults to Team Cymru's server)
+  #   post: TCP port to use (defaults to 43)
+  #
+  # Returns:
+  #   data frame of BGP Origin ASN lookup results
+  
+  
+  # setup query
+  cmd = "begin\nverbose\n" 
+  ips = paste(unlist(asn.list), collapse="\n")
+  cmd = sprintf("%s%s\nend\n",cmd,ips)
+  
+  # setup connection and post query
+  con = socketConnection(host=host,port=port,blocking=TRUE,open="r+")  
+  cat(cmd,file=con)
+  response = readLines(con)
+  close(con)
+  
+  # trim header, split fields and convert results
+  
+  response = response[2:length(response)]
+  response = laply(response,.fun=function(n) {
+    sapply(strsplit(n,"|",fixed=TRUE),trim)
+  })
+
+  response = adply(response,c(1))
+  response = subset(response, select = -c(X1) )
+  names(response) = c("AS","CC","Registry","Allocated","AS.Name")
+
+  return(response)
+  
+}
 
 
 CIRCL.BGP.Rank <- function(asn, circl.base.url="http://bgpranking.circl.lu/csv/") {
@@ -205,9 +253,8 @@ Alien.Vault.Reputation <- function(refresh=FALSE) {
   # Format is: IP#Reliability(1-10)#Risk(1-10)#Activity#Country#City#LAT,LON
   # ~18MB, so try to be sure you really need to refresh it
   #  
-  # TODO: Need to split lat/long
   # TODO: What is field 8?
-  # TODO: Need to split out the ";" separated factors
+  # TODO: Need to split out the ";" separated factors?
   #
   # Background on Alien Valut's IP rep db: http://labs.alienvault.com/labs/index.php/projects/open-source-ip-reputation-portal/download-ip-reputation-database/
   # More info on it: http://www.slideshare.net/alienvault/building-an-ip-reputation-engine-tracking-the-miscreants
@@ -250,4 +297,11 @@ Alien.Vault.Reputation <- function(refresh=FALSE) {
   
 }
 
+# http://www.nothink.org/blacklist/blacklist_malware_dns.txt
+# Malware DNS network traffic blacklist (FQDN)
 
+# http://www.nothink.org/blacklist/blacklist_malware_http.txt
+# Malware HTTP network traffic blacklist (IP address)
+
+# Malware IRC network traffic blacklist (IP address)
+# http://www.nothink.org/blacklist/blacklist_malware_irc.txt
