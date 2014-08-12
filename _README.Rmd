@@ -7,7 +7,9 @@ output:
     variant: markdown_github
 ---
 
-Version 1.1 brings a significant update to the core components of the `netinel` package. Every function has been re-written to be as fast as possible without resorting to `Rcpp` functions.
+Version 1.1 brings a significant update to the core components of the `netinel` package. Every function has been re-written to be as fast as possible without resorting to `Rcpp` functions. The intent of the package is to provide as many IP & ASN intelligence routines to those using R for Security Data Science and security intel/ops/IR work.
+
+It relies on `httr`, `plyr` & `data.table`.
 
 Current function list:
 
@@ -21,6 +23,7 @@ Current function list:
 ### Installation
 
 ```{r eval=FALSE}
+devtools::install_github("hrbrmstr/netintel")
 library(netintel)
 ```
 
@@ -32,7 +35,22 @@ library(netintel)
 # current verison
 packageVersion("netintel")
 
+# Bulk stuff
+BulkOrigin("162.243.111.4")
+BulkOriginASN(62567)
+BulkPeer("162.243.111.4")
 
+# CIRCL
+
+head(CIRCL.BGP.Rank(62567))
+
+# SANS was flaky so no example
+
+# SANS.ASN.Detail(62567)
+
+# AlienVault
+
+head(Alien.Vault.Reputation())
 ```
 
 ### Test Results
