@@ -171,9 +171,7 @@ BulkOriginASN <- function(asn.list, host="v4.whois.cymru.com", port=43) {
 #'
 CIRCL.BGP.Rank <- function(asn.list, 
                            circl.base.url="http://bgpranking.circl.lu/csv/") {
-  
-  require(plyr)
-  
+    
   ranks <- ldply(lapply( ifelse(grepl("^AS", asn.list), 
                                 gsub("^AS", "", asn.list), asn.list), 
                          function(asn) {
@@ -206,8 +204,7 @@ CIRCL.BGP.Rank <- function(asn.list,
 #'
 SANS.ASN.Detail <- function(asn, sans.base.url="http://isc.sans.edu/asdetailsascii.html?as=") {
   
-#   require(httr)
-  
+
   asn <- gsub("^AS", "", asn)
   src <- GET(sprintf("%s%s", sans.base.url, asn))
   asn.df <- read.table(textConnection(content(src, as="text")), header=FALSE, sep="\t")
@@ -251,8 +248,6 @@ SANS.ASN.Detail <- function(asn, sans.base.url="http://isc.sans.edu/asdetailsasc
 #' @export
 #'
 Alien.Vault.Reputation <- function(refresh=FALSE,  alien.vault.reputation.url="http://reputation.alienvault.com/reputation.data") {
-  
-#   require(data.table)
   
   # TODO: What is field 8?
   # TODO: Need to split out the ";" separated factors?
