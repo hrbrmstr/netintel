@@ -1,9 +1,15 @@
 Package: netintel
 Type: Package
-Title: What the package does (short line)
-Version: 1.0
-Date: 2013-02-08
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Title: Various network intelligence routines
+Version: 1.1.0
+Date: 2014-08-11
+Author: Bob Rudis <bob@rudis.net> and David Severski <david@severski.net>
+Maintainer: Bob Rudis <bob@rudis.net>
+Description: Various network intelligence routines
+License: GPL-2
+Suggests:
+    testthat
+Imports:
+    plyr,
+    data.table,
+    httr

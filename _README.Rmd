@@ -1,0 +1,48 @@
+---
+title: "README"
+author: "Bob Rudis"
+date: "August 10, 2014"
+output:
+  md_document:
+    variant: markdown_github
+---
+
+Version 1.1 brings a significant update to the core components of the `netinel` package. Every function has been re-written to be as fast as possible without resorting to `Rcpp` functions.
+
+Current function list:
+
+- `Alien.Vault.Reputation` - Retrieves Alien Vault's IP reputation database
+- `BulkOrigin` - Retrieves BGP Origin ASN info for a list of IPv4 addresses
+- `BulkOriginASN` - Retrieves BGP Origin ASN info for a list of ASN ids
+- `BulkPeer` - Retrieves BGP Peer ASN info for a list of IPv4 addresses
+- `CIRCL.BGP.Rank` - Retrieves CIRCL aggregated, historical/current BGP rank data
+- `SANS.ASN.Detail` - Retrieves SANS ASN intel currently tracked IP detail
+
+### Installation
+
+```{r eval=FALSE}
+library(netintel)
+```
+
+### Usage
+
+```{r}
+library(netintel)
+
+# current verison
+packageVersion("netintel")
+
+
+```
+
+### Test Results
+
+```{r}
+library(netintel)
+library(testthat)
+
+date()
+
+test_dir("tests/")
+
+```

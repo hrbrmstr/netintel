@@ -1,299 +1,294 @@
-#
-# netintel.R - perform bulk IP to ASN mapping via Team Cymru whois service
-#
-# Author: @hrbrmstr
-# Version: 0.3
-# Date: 2013-02-22
-#
-# Copyright 2013 Bob Rudis
-# 
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#   
-# The above copyright notice and this permission notice shall be
-# included in all copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-# LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.#
-#
-# FIXED: stupid call to lapply vs laply #idiot
-#
-# ADDED: ASN as well as IP bulk lookups
-#
-# TODO: spamhaus feeds? http://www.spamhaus.org/drop/drop.txt
-#                       http://www.spamhaus.org/drop/edrop.txt
-
-library(plyr)
-
 # short function to trim leading/trailing whitespace
-trim <- function (x) gsub("^\\s+|\\s+$", "", x)
+trim <- function (x) ifelse(is.na(x), NA, gsub("^\\s+|\\s+$", "", x))
 
-BulkOrigin <- function(ip.list,host="v4.whois.cymru.com",port=43) {
-  
-  # Retrieves BGP Origin ASN info for a list of IP addresses
-  #
-  # NOTE: IPv4 version
-  #
-  # NOTE: The Team Cymru's service is NOT a GeoIP service!
-  # Do not use this function for that as your results will not
-  # be accurate.
-  #
-  # It also seems to fail if you only search for one IP address
-  #
-  # Args:
-  #   ip.list : character vector of IP addresses
-  #   host: which server to hit for lookup (defaults to Team Cymru's server)
-  #   post: TCP port to use (defaults to 43)
-  #
-  # Returns:
-  #   data frame of BGP Origin ASN lookup results
-  
-  
+# short function to trim leading/trailing whitespace from all character columns
+trimdf <- function(df, stringsAsFactors=FALSE) {
+  data.frame(lapply(df, function (v) {
+    if (is.character(v)) {
+      trim(v)
+    } else {
+      v
+    }
+  }), stringsAsFactors=stringsAsFactors)
+}
+
+#' @title Retrieves BGP Origin ASN info for a list of IPv4 addresses
+#' @description Returns a list (slots are named by the input IPv4 addresses) 
+#'              with lookup results per slot
+#' @param ip.list vector of IPv4 address (character - dotted-decimal)
+#' @param host which server to perform the lookup (chr) - 
+#'        defaults to \code{v4.whois.cymru.com}
+#' @param port TCP port to use to connect to \code{host} (int) - 
+#'        defaults to port \code{43}
+#' @return data frame of BGP Origin ASN lookup results
+#'   \itemize{
+#'     \item \code{AS} - AS #
+#'     \item \code{IP} - IPv4 (passed in)
+#'     \item \code{BGP.Prefix} - BGP CIDR
+#'     \item \code{CC} - Country code
+#'     \item \code{Registry} - Registry it falls under
+#'     \item \code{Allocated} - date it was allocated
+#'     \item \code{AS.Name} - AS name
+#'   }
+#' @note The Team Cymru's service is NOT a GeoIP service! Do not use this 
+#'       function for that as your results will not be accurate.
+#' @seealso \url{http://www.team-cymru.org/Services/}
+#' @export
+#'
+BulkOrigin <- function(ip.list, host="v4.whois.cymru.com", port=43) {
+   
   # setup query
-  cmd = "begin\nverbose\n" 
-  ips = paste(unlist(ip.list), collapse="\n")
-  cmd = sprintf("%s%s\nend\n",cmd,ips)
+  cmd <- "begin\nverbose\n" 
+  ips <- paste(unlist(ip.list), collapse="\n")
+  cmd <- sprintf("%s%s\nend\n", cmd, ips)
   
   # setup connection and post query
-  con = socketConnection(host=host,port=port,blocking=TRUE,open="r+")  
-  cat(cmd,file=con)
-  response = readLines(con)
+  con <- socketConnection(host=host, port=port, blocking=TRUE, open="r+")  
+  cat(cmd, file=con)
+  response <- readLines(con)
   close(con)
 
   # trim header, split fields and convert results
-  response = response[2:length(response)]
-  response = lapply(response,.fun=function(n) {
-    sapply(strsplit(n,"|",fixed=TRUE),trim)
-  })
-  response = adply(response,c(1))
-  response = subset(response, select = -c(X1) )
-  names(response) = c("AS","IP","BGP.Prefix","CC","Registry","Allocated","AS.Name")
+  response <- trimdf(read.csv(textConnection(response[2:length(response)]), 
+                              stringsAsFactors=FALSE, sep="|", header=FALSE))
+  names(response) <- c("AS", "IP", "BGP.Prefix", "CC", 
+                       "Registry", "Allocated", "AS.Name")
+  response[response=="NA"] <- NA
   
   return(response)
   
 }
 
-BulkPeer <- function(ip.list,host="v4-peer.whois.cymru.com",port=43) {
-  
-  # Retrieves BGP Peer ASN info for a list of IP addresses
-  #
-  # NOTE: IPv4 version
-  #
-  # NOTE: The Team Cymru's service is NOT a GeoIP service!
-  # Do not use this function for that as your results will not
-  # be accurate.
-  #
-  # Args:
-  #   ip.list : character vector of IP addresses
-  #   host: which server to hit for lookup (defaults to Team Cymru's server)
-  #   post: TCP port to use (defaults to 43)
-  #
-  # Returns:
-  #   data frame of BGP Peer ASN lookup results
-  
+#' @title Retrieves BGP Peer ASN info for a list of IPv4 addresses
+#' @description Retrieves BGP Peer ASN info for a list of IPv4 addresses
+#' @param ip.list vector of IPv4 address (character - dotted-decimal)
+#' @param host which server to perform the lookup (chr) - 
+#'        defaults to \code{v4.whois.cymru.com}
+#' @param port TCP port to use to connect to \code{host} (int) - 
+#'        defaults to \code{43}
+#' @return data frame of BGP Peer ASN lookup results
+#'   \itemize{
+#'     \item \code{Peer.AS} - peer AS #
+#'     \item \code{IP} - IPv4 (passsed in)
+#'     \item \code{BGP.Prefix} - BGP CIDR block
+#'     \item \code{CC} - Country code
+#'     \item \code{Registry} - Registry it falls under
+#'     \item \code{Allocated} - date allocated
+#'     \item \code{Peer.AS.Name} - peer name
+#'   }
+#' @note The Team Cymru's service is NOT a GeoIP service! Do not use this 
+#'       function for that as your results will not be accurate.
+#' @seealso \url{http://www.team-cymru.org/Services/}
+#' @export
+#'
+BulkPeer <- function(ip.list, host="v4-peer.whois.cymru.com", port=43) {
   
   # setup query
-  cmd = "begin\nverbose\n" 
-  ips = paste(unlist(ip.list), collapse="\n")
-  cmd = sprintf("%s%s\nend\n",cmd,ips)
+  cmd <- "begin\nverbose\n" 
+  ips <- paste(unlist(ip.list), collapse="\n")
+  cmd <- sprintf("%s%s\nend\n", cmd, ips)
   
   # setup connection and post query
-  con = socketConnection(host=host,port=port,blocking=TRUE,open="r+")  
-  cat(cmd,file=con)
-  response = readLines(con)
+  con <- socketConnection(host=host, port=port, blocking=TRUE, open="r+")  
+  cat(cmd, file=con)
+  response <- readLines(con)
   close(con)
   
   # trim header, split fields and convert results
-  response = response[2:length(response)]
-  response = lapply(response,function(n) {
-    sapply(strsplit(n,"|",fixed=TRUE),trim)
-  })  
-  response = adply(response,c(1))
-  response = subset(response, select = -c(X1) )
-  names(response) = c("Peer.AS","IP","BGP.Prefix","CC","Registry","Allocated","Peer.AS.Name")
+  response <- trimdf(read.csv(textConnection(response[2:length(response)]), 
+                              stringsAsFactors=FALSE, sep="|", header=FALSE))
+  names(response) <- c("Peer.AS", "IP", "BGP.Prefix", "CC", 
+                       "Registry", "Allocated", "Peer.AS.Name")
+  response[response=="NA"] <- NA
+  
   return(response)
   
 }
 
-BulkOriginASN <- function(asn.list,host="v4.whois.cymru.com",port=43) {
-  
-  # Retrieves BGP Origin ASN info for a list of ASN ids
-  #
-  # NOTE: prefix each ASN id with 'AS'
-  #
-  # NOTE: The Team Cymru's service is NOT a GeoIP service!
-  # Do not use this function for that as your results will not
-  # be accurate.
-  #
-  # Args:
-  #   asn.list : character vector of ASN ids
-  #   host: which server to hit for lookup (defaults to Team Cymru's server)
-  #   post: TCP port to use (defaults to 43)
-  #
-  # Returns:
-  #   data frame of BGP Origin ASN lookup results
-  
+#' @title Retrieves BGP Origin ASN info for a list of ASN ids
+#' @description Retrieves BGP Origin ASN info for a list of ASN ids
+#' @param asn.list character vector of ASN ids (character)
+#' @param host which server to perform the lookup (chr) - 
+#'        defaults to \code{v4.whois.cymru.com}
+#' @param port TCP port to use to connect to \code{host} (int) -
+#'        defaults to \code{43}
+#' @return data frame of BGP Origin ASN lookup results
+#'   \itemize{
+#'     \item \code{AS} - AS #
+#'     \item \code{CC} - Country code
+#'     \item \code{Registry} - registry it falls under
+#'     \item \code{Allocated} - when it was allocated
+#'     \item \code{AS.Name} - name associated with the allocation
+#'   }
+#' @note The Team Cymru's service is NOT a GeoIP service! Do not use this 
+#'       function for that as your results will not be accurate.
+#' @seealso \url{http://www.team-cymru.org/Services/}
+#' @export
+#'
+BulkOriginASN <- function(asn.list, host="v4.whois.cymru.com", port=43) {
   
   # setup query
-  cmd = "begin\nverbose\n" 
-  ips = paste(unlist(asn.list), collapse="\n")
-  cmd = sprintf("%s%s\nend\n",cmd,ips)
+  cmd <- "begin\nverbose\n" 
+  ips <- paste(unlist(ifelse(grepl("^AS", asn.list), asn.list, 
+                             sprintf("AS%s", asn.list))), collapse="\n")
+  cmd <- sprintf("%s%s\nend\n", cmd, ips)
   
   # setup connection and post query
-  con = socketConnection(host=host,port=port,blocking=TRUE,open="r+")  
-  cat(cmd,file=con)
-  response = readLines(con)
+  con <- socketConnection(host=host, port=port, blocking=TRUE, open="r+")  
+  cat(cmd, file=con)
+  response <- readLines(con)
   close(con)
   
   # trim header, split fields and convert results
+  response <- trimdf(read.csv(textConnection(response[2:length(response)]), 
+                              stringsAsFactors=FALSE, sep="|", header=FALSE))
+  names(response) <- c("AS", "CC", "Registry", "Allocated", "AS.Name")
+  response[response=="NA"] <- NA
   
-  response = response[2:length(response)]
-  response = lapply(response,.fun=function(n) {
-    sapply(strsplit(n,"|",fixed=TRUE),trim)
-  })
-
-  response = adply(response,c(1))
-  response = subset(response, select = -c(X1) )
-  names(response) = c("AS","CC","Registry","Allocated","AS.Name")
-
   return(response)
   
 }
 
-
-CIRCL.BGP.Rank <- function(asn, circl.base.url="http://bgpranking.circl.lu/csv/") {
+#' @title Retrieves CIRCL aggregated, historical/current BGP rank data
+#' @description Retrieves CIRCL aggregated, historical/current BGP rank data
+#' @param asn.list character vector of ASN ids (character)
+#' @param circl.base.url CIRCL server base URL (chr) - 
+#'        defaults to \code{http://bgpranking.circl.lu/csv/}
+#' @return data frame of CIRCL rank data
+#'   \itemize{
+#'     \item \code{asn} asn # 
+#'     \item \code{day} date
+#'     \item \code{rank} current rank that day
+#'   }
+#' @seealso
+#'   \itemize{
+#'     \item Background on CIRCL Project (+source) \url{https://github.com/CIRCL/bgp-ranking}
+#'     \item CIRCL BGP site \url{http://bgpranking.circl.lu/}
+#'   }
+#' @export
+#' @examples
+#' CIRCL.BGP.Rank(57954)
+#'
+CIRCL.BGP.Rank <- function(asn.list, 
+                           circl.base.url="http://bgpranking.circl.lu/csv/") {
   
-  # Retrieves CIRCL aggregated, historical/current BGP rank data
-  #
-  # Args:
-  #   asn : ASN list to lookup
-  #   circl.base.url : lookup URL (optional parameter in the event it changes)
-  #
-  # Returns:
-  #   data frame of CIRCL rank data (day|rank)
-  #
-  # Background on CIRCL project (+ source): https://github.com/CIRCL/bgp-ranking
-  # CIRCL BGP site: http://bgpranking.circl.lu/
-  # Sample CIRCL output: http://bgpranking.circl.lu/csv/57954
-  # day,rank
-  # 2012-09-19,1.00020833333
-  # 2012-09-18,1.00020833333
+  require(plyr)
   
-  ranks = lapply(asn,function(x){
-    read.csv(sprintf("%s%s",circl.base.url,x))
-  })
+  ranks <- ldply(lapply( ifelse(grepl("^AS", asn.list), 
+                                gsub("^AS", "", asn.list), asn.list), 
+                         function(asn) {
+                           cbind(asn, read.csv(sprintf("%s%s", 
+                                                       circl.base.url, asn),
+                                               stringsAsFactors=FALSE))  
+  }), rbind)
 
   return(ranks)
+  
 }
 
-
+#' @title Retrieves SANS ASN intel currently tracked IP detail 
+#' @description Retrieves SANS ASN intel currently tracked IP detail 
+#' @param asn ASN to lookup (character) - no \code{AS} prefix
+#' @param sans.base.url SANS server base URL (chr) - defaults to
+#'        \code{http://isc.sans.edu/asdetailsascii.html?as=}
+#' @return data frame of SANS ASN IP data 
+#'   \itemize{
+#'     \item \code{Source.IP} is 0 padded so each byte is three digits long
+#'     \item \code{Reports.Count} number of packets received
+#'     \item \code{Targets.Count} number of target IPs that reported packets from this source
+#'     \item \code{First.Seen} First time we saw a packet from this source
+#'     \item \code{Last.Seen} Last time we saw a packet from this source
+#'     \item \code{Updated.Date.Time} Last date+time the record was updated
+#'   }
+#' @note IPs are removed if they have not been seen in 30 days.
+#' @seealso \url{https://isc.sans.edu/as.html}
+#' @export
+#'
 SANS.ASN.Detail <- function(asn, sans.base.url="http://isc.sans.edu/asdetailsascii.html?as=") {
-
-  # Retrieves SANS ASN currently tracked IP detail 
-  #
-  # Args:
-  #   asn : ASN to lookup
-  #   sans.base.url : lookup URL (optional parameter in the event it changes)
-  #
-  # NOTE: If you use the "https" URL access, you'll need to change the code below 
-  #       on some systems that can't read https directly
-  #
-  # Returns:
-  #   data frame of SANS ASN IP data (see example below)
-  #
-  # https://isc.sans.edu/asdetailsascii.html?as=21844
-  # asdetailsascii.html
-  # created: Fri, 08 Feb 2013 14:17:01 +0000#
-  # Source IP is 0 padded so each byte is three digits long
-  # Reports: number of packets received
-  # Targets: number of target IPs that reported packets from this source.
-  # First Seen: First time we saw a packet from this source
-  # Last Seen: Last time we saw a packet from this source
-  # Updated: Last time the record was updated.
-  #
-  # IPs are removed if they have not been seen in 30 days.
-  #
-  # source IP <tab> Reports <tab> Targets <tab> First Seen <tab> Last Seen <tab> Updated <CR>
-  # 118.102.187.188  4495  3909	2010-05-12	2013-02-02	2013-02-02 10:42:01
-    
-  src = readLines(sprintf("%s%s",sans.base.url,asn))
-  asn.df = read.table(textConnection(src[grep("^#", src, invert=TRUE)]))
-  names(asn.df) = c("Source.IP","Reports.Count","Targets.Count","First.Seen","Last.Seen","Updated.Date","Updated.Time")
+  
+#   require(httr)
+  
+  asn <- gsub("^AS", "", asn)
+  src <- GET(sprintf("%s%s", sans.base.url, asn))
+  asn.df <- read.table(textConnection(content(src, as="text")), header=FALSE, sep="\t")
+  names(asn.df) <- c("Source.IP", "Reports.Count", "Targets.Count", 
+                     "First.Seen", "Last.Seen", "Updated.Date.Time")
   
   return(asn.df)
   
 }
 
 
-Alien.Vault.Reputation <- function(refresh=FALSE) {
+#' @title Retrieves Alien Vault's IP reputation database
+#' @description Retrieves Alien Vault's IP reputation database.
+#' @details   
+#' AlienValut refreshes every hour, but the onus is on the caller to force a 
+#' refresh. First-time call will setup a cache directory & file in the user's 
+#' home directory, download & generate the data frame then write the data frame 
+#' out as an R object. Future calls will just re-read this data frame unless 
+#' \code{refresh == TRUE} should the function refresh the database.
+#'    
+#' Please be kind to the AlienValut servers & only refresh if you really need to.
+#' @param refresh refresh the database? (bool)
+#' @param alien.vault.reputation.url URL of the AlienVault data (chr) - 
+#'        defaults to \code{http://reputation.alienvault.com/reputation.data}
+#' @return data.table with IP & Reputation information.
+#'   \itemize{
+#'     \item \code{IP} - IPv4 address
+#'     \item \code{Risk} - how risky is the target (1-10)
+#'     \item \code{Reliability} - how reliable is the rating (1-10)
+#'     \item \code{Activity} - what type of host is it
+#'     \item \code{Country} - what is the IPv4 country of origin
+#'     \item \code{City} - what is the IPv4 city of origin
+#'     \item \code{Latitude} - geolocated latitude of the IPv4
+#'     \item \code{Longitude} - geolocated longitude of the IPv4
+#'   }
+#' @seealso
+#'   \itemize{
+#'     \item Background on AlienValut's IP rep db: \url{http://labs.alienvault.com/labs/index.php/projects/open-source-ip-reputation-portal/download-ip-reputation-database/}
+#'     \item More info on AlienVault's database: \url{http://www.slideshare.net/alienvault/building-an-ip-reputation-engine-tracking-the-miscreants}
+#'   }
+#' @export
+#'
+Alien.Vault.Reputation <- function(refresh=FALSE,  alien.vault.reputation.url="http://reputation.alienvault.com/reputation.data") {
   
-  # Retrieves Alien Vault's IP reputation database
-  #
-  # Args:
-  #   refresh: should the function refresh the database; AlienValut refreshes every hour, but the onus
-  #            is on the caller to force a refresh. First-time call will setup a cache directory & file
-  #            in the user's home directory, download & generate the data frame then write the data frame
-  #            out as an R object. Future calls will just re-read this data frame unless refresh == TRUE
-  #            Please be kind to the Alien Valut servers & only refresh if you really need to.
-  #
-  # Returns:
-  #   data frame with IP & Reputation factor
-  #
-  # Switched to http://reputation.alienvault.com/reputation.data as it has a richer set of fields
-  # Format is: IP#Reliability(1-10)#Risk(1-10)#Activity#Country#City#LAT,LON
-  # ~18MB, so try to be sure you really need to refresh it
-  #  
+#   require(data.table)
+  
   # TODO: What is field 8?
   # TODO: Need to split out the ";" separated factors?
-  #
-  # Background on Alien Valut's IP rep db: http://labs.alienvault.com/labs/index.php/projects/open-source-ip-reputation-portal/download-ip-reputation-database/
-  # More info on it: http://www.slideshare.net/alienvault/building-an-ip-reputation-engine-tracking-the-miscreants
-  #
   
-  alien.vault.reputation.url = "http://reputation.alienvault.com/reputation.data"
-  
-  av.dir = file.path(path.expand("~"), ".ipcache")
-  av.file =  file.path(av.dir,"alienvaultrepdf")
-  av.data.file =  file.path(av.dir,"reputation.data")
+  av.dir <- file.path(path.expand("~"), ".ipcache")
+  av.file <-  file.path(av.dir, "alienvaultrep.rda")
+  av.data.file <-  file.path(av.dir, "reputation.data")
   
   dir.create(av.dir, showWarnings=FALSE)
-  if (refresh || file.access(av.file)) {
-    download.file(alien.vault.reputation.url,av.data.file)  
-    src = file(av.data.file)
-    raw = readLines(src)
-    close(src)
-    av.matrix = t(sapply(strsplit(raw[1:length(raw)],"#"),c))  
-    av.ip = av.matrix[,1]
-    av.reliability = av.matrix[,2]
-    av.risk = av.matrix[,3]
-    av.activity = factor(av.matrix[,4])
-    av.country = av.matrix[,5]
-    av.city = av.matrix[,6]
-    av.location = t(sapply(strsplit(av.matrix[,7],","),c))  
-    av.df = data.frame(IP=av.ip,Reliability=av.reliability,
-                       Risk=av.risk,
-                       Activity=av.activity,
-                       Country=factor(av.country),
-                       City=av.city,
-                       Latitude=as.numeric(av.location[,1]),
-                       Longitude=as.numeric(av.location[,2]),
-                       stringsAsFactors=FALSE)
-    dput(av.df,av.file)
+
+  if (refresh || file.access(av.file, 4)!=0) {
+    
+    suppressWarnings(av.dt <- fread(alien.vault.reputation.url, sep="#", 
+                                    stringsAsFactors=FALSE))
+    setnames(av.dt, colnames(av.dt), c("IP", "Risk", "Reliability", "Activity",
+                                       "Country", "City", "LatLon", "x"))
+
+    av.dt[, Latitude:=unlist(strsplit(LatLon, split=","))[[1]], by=LatLon]
+    av.dt[, Longitude:=unlist(strsplit(LatLon, split=","))[[2]], by=LatLon]
+    av.dt$LatLon <- NULL
+    av.dt$x <- NULL
+    
+    setkey(av.dt, IP)
+
+    av.dt$Risk <- factor(av.dt$Risk)
+    av.dt$Reliability <- factor(av.dt$Reliability)
+    av.dt$Country <- factor(av.dt$Country)
+    av.dt$City <- factor(av.dt$City)
+    
+    save(av.dt, file=av.file, compress=TRUE)
+    
   } else {
-    av.df = dget(av.file)
+    av.df = load(av.file)
   }
   
-  return(av.df)
+  return(av.dt)
   
 }
 
