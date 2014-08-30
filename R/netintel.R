@@ -203,7 +203,6 @@ CIRCL.BGP.Rank <- function(asn.list,
 #' @export
 #'
 SANS.ASN.Detail <- function(asn, sans.base.url="http://isc.sans.edu/asdetailsascii.html?as=") {
-  
 
   asn <- gsub("^AS", "", asn)
   src <- GET(sprintf("%s%s", sans.base.url, asn))
@@ -247,7 +246,7 @@ SANS.ASN.Detail <- function(asn, sans.base.url="http://isc.sans.edu/asdetailsasc
 #'   }
 #' @export
 #'
-Alien.Vault.Reputation <- function(refresh=FALSE,  alien.vault.reputation.url="http://reputation.alienvault.com/reputation.data") {
+Alien.Vault.Reputation <- function(refresh=FALSE, alien.vault.reputation.url="http://reputation.alienvault.com/reputation.data") {
   
   # TODO: What is field 8?
   # TODO: Need to split out the ";" separated factors?
@@ -287,11 +286,130 @@ Alien.Vault.Reputation <- function(refresh=FALSE,  alien.vault.reputation.url="h
   
 }
 
-# http://www.nothink.org/blacklist/blacklist_malware_dns.txt
-# Malware DNS network traffic blacklist (FQDN)
+#' @title Retrieves Zeus Blocklist (IP/FQDN/URL)
+#' @description Retrieves Zeus Blocklist (IP/FQDN/URL)
+#' @details   
+#' The Zeus blocklist refreshes regularly, but the onus is on the caller to force a 
+#' refresh. First-time call will setup a cache directory & file in the user's 
+#' home directory, download & generate the data frame then write the data frame 
+#' out as an R object. Future calls will just re-read this data frame unless 
+#' \code{refresh == TRUE} should the function refresh the database.
+#'    
+#' @param refresh refresh the database? (bool)
+#' @param domains_url Zeus domains blocklist URL (chr) - 
+#'        defaults to \code{https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist}
+#' @param ips_url Zeus IP blocklist URL (chr) - 
+#'        defaults to \code{https://zeustracker.abuse.ch/blocklist.php?download=ipblocklist}
+#' @param urls_url Zeus compromised URLs blocklist URL (chr) - 
+#'        defaults to \code{https://zeustracker.abuse.ch/blocklist.php?download=compromised}
+#' @return List of three singe-column data frames, one for each blocklist
+#'   \itemize{
+#'     \item \code{domains} - Zeus domains (column name: \code{domain})
+#'     \item \code{ips} - Zeus ips (column name: \code{IP})
+#'     \item \code{urls} - Zeus domains (column name: \code{URL})
+#' }
+#' @seealso Zeus blocklist info - \url{https://zeustracker.abuse.ch/blocklist.php}
+#' @export
+Zeus.Blocklist <- function(refresh=FALSE,
+                           domains_url="https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist", 
+                           ips_url="https://zeustracker.abuse.ch/blocklist.php?download=ipblocklist",
+                           urls_url="https://zeustracker.abuse.ch/blocklist.php?download=compromised") {
+  
+  zeus.dir <- file.path(path.expand("~"), ".ipcache")
+  
+  zeus.data.file <-  file.path(zeus.dir, "zeus.rda")
 
-# http://www.nothink.org/blacklist/blacklist_malware_http.txt
-# Malware HTTP network traffic blacklist (IP address)
+  zeus.ips.file <- file.path(zeus.dir, "zeus_ipblocklist.txt")
+  zeus.domains.file <- file.path(zeus.dir, "zeus_domainblocklist.txt")
+  zeus.urls.file <- file.path(zeus.dir, "zeus_compromised.txt")
+  
+  dir.create(zeus.dir, showWarnings=FALSE)
+  
+  if (refresh || file.access(zeus.data.file, 4)!=0) {
+    
+    dom <- GET(domains_url)
+    write(content(dom, "text"), file=zeus.domains.file)
 
-# Malware IRC network traffic blacklist (IP address)
-# http://www.nothink.org/blacklist/blacklist_malware_irc.txt
+    ips <- GET(ips_url)
+    write(content(ips, "text"), file=zeus.ips.file)
+    
+    urls <- GET(urls_url)
+    write(content(urls, "text"), file=zeus.urls.file)
+    
+    dom_df <- read.table(textConnection(content(dom, "text")), stringsAsFactors=FALSE)
+    setnames(dom_df, colnames(dom_df), "domain")
+    ips_df <- read.table(textConnection(content(ips, "text")), stringsAsFactors=FALSE)
+    setnames(ips_df, colnames(ips_df), "IP")
+    url_df <- read.table(textConnection(content(urls, "text")), stringsAsFactors=FALSE)
+    setnames(url_df, colnames(url_df), "URL")
+    
+    save(dom_df, ips_df, url_df, file=zeus.data.file)
+    
+  } else {
+    load(zeus.data.file)
+  }
+  
+  return(zeus=list(domains=dom_df, ips=ips_df, urls=url_df))
+  
+}
+
+#' @title Retrieves Nothink Malware DNS network traffic blacklist (IP/FQDN)
+#' @description Retrieves Nothink Malware DNS network traffic blacklist (IP/FQDN)
+#' @details   
+#' The Nothink blocklist refreshes regularly, but the onus is on the caller to force a 
+#' refresh. First-time call will setup a cache directory & file in the user's 
+#' home directory, download & generate the data frame then write the data frame 
+#' out as an R object. Future calls will just re-read this data frame unless 
+#' \code{refresh == TRUE} should the function refresh the database.
+#'    
+#' @param refresh refresh the database? (bool)
+#' @param nothink_url Nothink blacklist URL (chr) - 
+#'        defaults to \code{http://www.nothink.org/blacklist/blacklist_malware_dns.txt}
+#' @return List of two singe-column data frames, one for each blocklist
+#'   \itemize{
+#'     \item \code{domains} - Zeus domains (column name: \code{domain})
+#'     \item \code{ips} - Zeus ips (column name: \code{IP})
+#' }
+#' @seealso Nothink - \url{http://www.nothink.org/}
+#' @export
+Nothink.Blocklist <- function(refresh=FALSE,
+                              nothink_url="http://www.nothink.org/blacklist/blacklist_malware_dns.txt") {
+  
+  nothink.dir <- file.path(path.expand("~"), ".ipcache")
+  
+  nothink.data.file <-  file.path(nothink.dir, "nothink.rda")
+  
+  nothink.file <- file.path(nothink.dir, "nothink.txt")
+  
+  dir.create(nothink.dir, showWarnings=FALSE)
+  
+  if (refresh || file.access(nothink.data.file, 4)!=0) {
+    
+    dat <- GET(nothink_url)
+    write(content(dat, "text"), file=nothink.file)
+    
+    dat_v <- grep("^#|^\ *$", readLines(textConnection(content(dat, "text"))), invert=TRUE, value=TRUE)
+    
+    is_ip <- validateIP(dat_v)
+    
+    ips_df <- data.frame(IP=dat_v[is_ip], stringsAsFactors=FALSE)
+    dom_df <- data.frame(domain=dat_v[!is_ip], stringsAsFactors=FALSE)
+    
+    save(dom_df, ips_df, file=nothink.data.file)
+    
+  } else {
+    load(nothink.data.file)
+  }
+  
+  return(nothink=list(domains=dom_df, ips=ips_df))
+  
+}
+
+.validateIP <- function(ip) {
+  
+  res <- regexpr('^(((2(5[0-5]|[0-4][0-9])|[01]?[0-9][0-9]?)\\.){3}(2(5[0-5]|[0-4][0-9])|[01]?[0-9][0-9]?))$', ip)
+  return(min(res) > 0)
+  
+}
+
+validateIP <- Vectorize(.validateIP)

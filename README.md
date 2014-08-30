@@ -1,3 +1,5 @@
+Version 1.2 adds the [Zeus](https://zeustracker.abuse.ch/blocklist.php) and [Nothink](http://www.nothink.org/) blocklists
+
 Version 1.1 brings a significant update to the core components of the `netinel` package. Every function has been re-written to be as fast as possible without resorting to `Rcpp` functions. The intent of the package is to provide as many IP & ASN intelligence routines to those using R for Security Data Science and security intel/ops/IR work.
 
 It relies on `httr`, `plyr` & `data.table`.
@@ -10,6 +12,8 @@ Current function list:
 -   `BulkPeer` - Retrieves BGP Peer ASN info for a list of IPv4 addresses
 -   `CIRCL.BGP.Rank` - Retrieves CIRCL aggregated, historical/current BGP rank data
 -   `SANS.ASN.Detail` - Retrieves SANS ASN intel currently tracked IP detail
+-   `Zeus.Blocklist` - Retrieves Zeus Blocklist (IP/FQDN/URL)
+-   `Nothink.Blocklist` - Retrieves Nothink Malware DNS network traffic blacklist (IP/FQDN)
 
 ### Installation
 
@@ -27,7 +31,7 @@ library(netintel)
 packageVersion("netintel")
 ```
 
-    ## [1] '1.1.0'
+    ## [1] '1.2.0'
 
 ``` {.r}
 # Bulk stuff
@@ -73,8 +77,6 @@ BulkPeer("162.243.111.4")
 head(CIRCL.BGP.Rank(62567))
 ```
 
-    ## Loading required package: plyr
-
     ##     asn        day  rank
     ## 1 62567 2014-06-30 1.001
     ## 2 62567 2013-07-27 1.000
@@ -108,6 +110,32 @@ head(Alien.Vault.Reputation())
     ## 5:          -27.0         133.0
     ## 6:          -27.0         133.0
 
+``` {.r}
+# Zeus
+
+str(Zeus.Blocklist())
+```
+
+    ## List of 3
+    ##  $ domains:'data.frame': 856 obs. of  1 variable:
+    ##   ..$ domain: chr [1:856] "039b1ee.netsolhost.com" "03a6b7a.netsolhost.com" "03a6f57.netsolhost.com" "1day.su" ...
+    ##  $ ips    :'data.frame': 213 obs. of  1 variable:
+    ##   ..$ IP: chr [1:213] "103.241.0.100" "103.4.52.150" "103.7.59.135" "107.181.174.84" ...
+    ##  $ urls   :'data.frame': 673 obs. of  1 variable:
+    ##   ..$ URL: chr [1:673] "190.104.217.181/~ssiprueb/wp-includes/css/b.exe" "190.104.217.181/~ssiprueb/wp-includes/css/cfg.bin" "190.104.217.181/~ssiprueb/wp-includes/css/login.php" "210.37.11.238/jm32/includes/site/bot.exe" ...
+
+``` {.r}
+# Nothink
+
+str(Nothink.Blocklist())
+```
+
+    ## List of 2
+    ##  $ domains:'data.frame': 202 obs. of  1 variable:
+    ##   ..$ domain: chr [1:202] "1.h8cbf.in" "199.222.35.192.in-addr.arpa." "2.0.168.192.in-addr.arpa." "202.222.35.192.in-addr.arpa" ...
+    ##  $ ips    :'data.frame': 235 obs. of  1 variable:
+    ##   ..$ IP: chr [1:235] "130.14.108.54" "130.14.11.194" "130.14.118.141" "130.14.129.171" ...
+
 ### Test Results
 
 ``` {.r}
@@ -117,12 +145,14 @@ library(testthat)
 date()
 ```
 
-    ## [1] "Mon Aug 11 20:31:32 2014"
+    ## [1] "Sat Aug 30 07:06:39 2014"
 
 ``` {.r}
 test_dir("tests/")
 ```
 
-    ## Team CYMRU : ...
-    ## CIRCL : .
-    ## AlienVault : .
+    ## Team CYMRU : [1;32m.[0m[1;32m.[0m[1;32m.[0m
+    ## CIRCL : [1;32m.[0m
+    ## AlienVault : [1;32m.[0m
+    ## Zeus : [1;32m.[0m
+    ## Nothink : [1;32m.[0m

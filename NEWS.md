@@ -1,3 +1,10 @@
+# CHANGES IN netintel VERSION 1.2.0 #
+
+## NEW FEATURES
+
+- added support for Zeus & Nothink blocklist retrieval
+
+
 # CHANGES IN netintel VERSION 1.1.0 #
 
 ## NEW FEATURES

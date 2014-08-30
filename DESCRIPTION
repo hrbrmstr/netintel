@@ -1,8 +1,8 @@
 Package: netintel
 Type: Package
 Title: Various network intelligence routines
-Version: 1.1.0
-Date: 2014-08-11
+Version: 1.2.0
+Date: 2014-08-30
 Author: Bob Rudis <bob@rudis.net> and David Severski <david@severski.net>
 Maintainer: Bob Rudis <bob@rudis.net>
 Description: Various network intelligence routines

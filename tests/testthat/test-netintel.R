@@ -57,3 +57,24 @@ test_that("we can perform AlienVault function", {
   #expect_that(gethostbyname("f0011"), equals(character(0)))
   
 })
+
+context("Zeus")
+
+test_that("we can perform Zeus function", {
+  
+  expect_that(Zeus.Blocklist(), is_a("list"))
+  #expect_that(gethostbyname("f0011"), equals(character(0)))
+  #expect_that(gethostbyname("f0011"), equals(character(0)))
+  
+})
+
+
+context("Nothink")
+
+test_that("we can perform Nothink function", {
+  
+  expect_that(Nothink.Blocklist(), is_a("list"))
+  #expect_that(gethostbyname("f0011"), equals(character(0)))
+  #expect_that(gethostbyname("f0011"), equals(character(0)))
+  
+})

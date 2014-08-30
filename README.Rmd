@@ -1,11 +1,13 @@
 ---
 title: "README"
 author: "Bob Rudis"
-date: "August 10, 2014"
+date: "August 30, 2014"
 output:
   md_document:
     variant: markdown_github
 ---
+
+Version 1.2 adds the [Zeus](https://zeustracker.abuse.ch/blocklist.php) and [Nothink](http://www.nothink.org/) blocklists
 
 Version 1.1 brings a significant update to the core components of the `netinel` package. Every function has been re-written to be as fast as possible without resorting to `Rcpp` functions. The intent of the package is to provide as many IP & ASN intelligence routines to those using R for Security Data Science and security intel/ops/IR work.
 
@@ -19,6 +21,8 @@ Current function list:
 - `BulkPeer` - Retrieves BGP Peer ASN info for a list of IPv4 addresses
 - `CIRCL.BGP.Rank` - Retrieves CIRCL aggregated, historical/current BGP rank data
 - `SANS.ASN.Detail` - Retrieves SANS ASN intel currently tracked IP detail
+- `Zeus.Blocklist` - Retrieves Zeus Blocklist (IP/FQDN/URL)
+- `Nothink.Blocklist` - Retrieves Nothink Malware DNS network traffic blacklist (IP/FQDN)
 
 ### Installation
 
@@ -51,6 +55,14 @@ head(CIRCL.BGP.Rank(62567))
 # AlienVault
 
 head(Alien.Vault.Reputation())
+
+# Zeus
+
+str(Zeus.Blocklist())
+
+# Nothink
+
+str(Nothink.Blocklist())
 ```
 
 ### Test Results
